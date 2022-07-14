@@ -1,0 +1,69 @@
+version: "3.0"
+
+services:
+  laravel:
+    build: ./laravel
+    container_name: laravel
+    restart: always
+    depends_on:
+      - db
+    volumes:
+      - ./laravel/source:/var/www/laravel
+    networks:
+      - mynet
+  reactjs:
+    build: ./reactjs
+    container_name: reactjs
+    restart: always
+    depends_on:
+      - laravel
+    ports:
+      - 8030:3000
+    volumes:
+      - ./reactjs/source:/app
+    networks:
+      - mynet
+  db:
+    image: mysql
+    container_name: db
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: abc123
+    volumes:
+      - ./mysql/db:/var/lib/mysql
+    networks:
+      - mynet
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    restart: always
+    ports:
+      - 8081:80
+    networks:
+      - mynet
+  nginx:
+    container_name: nginx
+    depends_on:
+      - db
+      - laravel
+    image: nginx:latest
+    restart: unless-stopped
+    ports:
+      - 8080:80
+    volumes:
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+      - ./laravel/source/:/var/www/laravel/
+    networks:
+      - mynet
+volumes:
+    mysql:
+networks:
+  mynet:
+    driver: bridge
